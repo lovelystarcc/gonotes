@@ -52,7 +52,7 @@ Minimal REST API for note management, written in Go with chi and render. Data is
   ```
 - **Run:**
   ```bash
-  go run main.go
+  go run cmd/gonotes/main.go
   ```
 - **Build:**
   ```bash
