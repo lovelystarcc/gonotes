@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
+	"os"
 
 	"gonotes/internal/notes"
 
@@ -9,14 +11,21 @@ import (
 )
 
 func main() {
+	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
 	router := chi.NewRouter()
 	storage := notes.NewStorage()
-	handler := notes.NewHandler(storage)
+	handler := notes.NewHandler(log, storage)
 
-	router.Post("/notes", handler.CreateNote)
-	router.Get("/notes/{id}", handler.GetNote)
-	router.Delete("/notes/{id}", handler.DeleteNote)
-	router.Get("/notes", handler.GetNotes)
+	router.Post("/notes", handler.Create)
+	router.Get("/notes/{id}", handler.Get)
+	router.Delete("/notes/{id}", handler.Delete)
+	router.Get("/notes", handler.Get)
 
-	http.ListenAndServe(":8080", router)
+	log.Info("starting server")
+
+	if err := http.ListenAndServe(":8080", router); err != nil {
+		log.Error("server stopped", slog.Any("err", err))
+	}
 }
