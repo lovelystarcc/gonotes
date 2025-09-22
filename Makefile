@@ -1,7 +1,7 @@
 BINARY_NAME=app
 
 run:
-	go run main.go
+	go run cmd/gonotes/main.go
 
 build:
 	go build -o $(BINARY_NAME) main.go
