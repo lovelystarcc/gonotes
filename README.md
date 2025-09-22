@@ -144,9 +144,3 @@ curl http://localhost:8080/notes
 - **Storage:** in-memory map (non-persistent)
 - **Port:** 8080 (hard-coded in main.go)
 - **Concurrency:** demo-only; not designed for concurrent writes
-
----
-
-## License
-
-MIT. See LICENSE.
