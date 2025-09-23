@@ -2,6 +2,8 @@ package notes
 
 import (
 	"fmt"
+	"gonotes/internal/notes/model"
+	"gonotes/internal/notes/storage"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,10 +14,10 @@ import (
 
 type Handler struct {
 	log     *slog.Logger
-	storage *Storage
+	storage storage.NoteRepository
 }
 
-func NewHandler(log *slog.Logger, storage *Storage) *Handler {
+func NewHandler(log *slog.Logger, storage storage.NoteRepository) *Handler {
 	return &Handler{
 		log:     log,
 		storage: storage,
@@ -29,16 +31,22 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		slog.String("op", op),
 	)
 
-	var n Note
+	var n model.Note
 	if err := render.Bind(r, &n); err != nil {
 		log.Error("invalid request body", slog.Any("err", err))
-		render.Render(w, r, NewErrResponse(http.StatusBadRequest, err))
+		render.Render(w, r, model.NewErrResponse(http.StatusBadRequest, err))
 		return
 	}
 
-	created := h.storage.Create(n)
+	created, err := h.storage.Create(n)
+	if err != nil {
+		log.Error("failed to create note", slog.Any("err", err))
+		render.Render(w, r, model.NewErrResponse(http.StatusInternalServerError, err))
+		return
+	}
+
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, &created)
+	render.Render(w, r, created)
 
 	log.Info("note created", slog.Int("id", created.ID))
 }
@@ -54,14 +62,14 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	noteID, err := strconv.Atoi(idParam)
 	if err != nil {
 		log.Error("invalid id format", slog.Any("err", err))
-		render.Render(w, r, NewErrResponse(http.StatusBadRequest, fmt.Errorf("invalid id format")))
+		render.Render(w, r, model.NewErrResponse(http.StatusBadRequest, fmt.Errorf("invalid id format")))
 		return
 	}
 
 	n, err := h.storage.Get(noteID)
 	if err != nil {
 		log.Error("note not found", slog.Any("err", err))
-		render.Render(w, r, NewErrResponse(http.StatusNotFound, err))
+		render.Render(w, r, model.NewErrResponse(http.StatusNotFound, err))
 		return
 	}
 
@@ -82,18 +90,19 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	noteID, err := strconv.Atoi(idParam)
 	if err != nil {
 		log.Error("invalid id format", slog.Any("err", err))
-		render.Render(w, r, NewErrResponse(http.StatusBadRequest, fmt.Errorf("invalid id format")))
+		render.Render(w, r, model.NewErrResponse(http.StatusBadRequest, fmt.Errorf("invalid id format")))
 		return
 	}
 
-	err = h.storage.Delete(noteID)
+	n, err := h.storage.Delete(noteID)
 	if err != nil {
 		log.Error("note not found", slog.Any("err", err))
-		render.Render(w, r, NewErrResponse(http.StatusNotFound, err))
+		render.Render(w, r, model.NewErrResponse(http.StatusNotFound, err))
 		return
 	}
 
-	render.Status(r, http.StatusNoContent)
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, n)
 
 	log.Info("note deleted", slog.Int("id", noteID))
 }
@@ -105,7 +114,12 @@ func (h *Handler) GetAll(w http.ResponseWriter, r *http.Request) {
 		slog.String("op", op),
 	)
 
-	list := h.storage.GetAll()
+	list, err := h.storage.GetAll()
+	if err != nil {
+		log.Error("failed to get all notes", slog.Any("err", err))
+		render.Render(w, r, model.NewErrResponse(http.StatusInternalServerError, err))
+		return
+	}
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, list)

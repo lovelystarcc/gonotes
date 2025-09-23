@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"gonotes/internal/notes"
+	"gonotes/internal/notes/storage/sqlite"
 
 	"github.com/go-chi/chi"
 )
@@ -15,13 +16,19 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 	router := chi.NewRouter()
-	storage := notes.NewStorage()
+
+	storage, err := sqlite.New("./storage/storage.db")
+	if err != nil {
+		log.Error("failed to init storage", slog.Any("err", err))
+		os.Exit(1)
+	}
+
 	handler := notes.NewHandler(log, storage)
 
 	router.Post("/notes", handler.Create)
 	router.Get("/notes/{id}", handler.Get)
 	router.Delete("/notes/{id}", handler.Delete)
-	router.Get("/notes", handler.Get)
+	router.Get("/notes", handler.GetAll)
 
 	log.Info("starting server")
 
