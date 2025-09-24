@@ -7,6 +7,7 @@ import (
 
 	"gonotes/internal/notes"
 	"gonotes/internal/notes/config"
+	"gonotes/internal/notes/lib/logger"
 	"gonotes/internal/notes/storage/sqlite"
 
 	"github.com/go-chi/chi"
@@ -14,9 +15,8 @@ import (
 
 func main() {
 	cfg := config.MustLoadConfig()
-	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
+	log := logger.New(cfg.Env)
+
 	router := chi.NewRouter()
 
 	storage, err := sqlite.New(cfg.StoragePath)
@@ -32,9 +32,19 @@ func main() {
 	router.Delete("/notes/{id}", handler.Delete)
 	router.Get("/notes", handler.GetAll)
 
+	srv := &http.Server{
+		Addr:         cfg.HTTPServer.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
 	log.Info("starting server")
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Error("server stopped", slog.Any("err", err))
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Error("server error", slog.Any("err", err))
 	}
+
+	log.Info("server stopped")
 }
