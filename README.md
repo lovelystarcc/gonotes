@@ -1,7 +1,7 @@
 # GoNotes
 
 Minimal REST API for note management, written in Go with **chi** and **render**.
-Data is stored in a **SQLite** database via a repository interface, so it persists between server restarts.
+Data is stored in a **SQLite** database.
 
 ---
 
@@ -39,32 +39,11 @@ Data is stored in a **SQLite** database via a repository interface, so it persis
     BINARY_NAME=app
     ```
   - Result: `./app`
-- **Run tests:**
-  ```bash
-  make test
-  ```
+
 - **Clean build artifacts:**
   ```bash
   make clean
   ```
-
-### Without Make
-- **Install deps:**
-  ```bash
-  go mod tidy
-  ```
-- **Run:**
-  ```bash
-  go run cmd/gonotes/main.go
-  ```
-- **Build:**
-  ```bash
-  go build -o app cmd/gonotes/main.go
-  ```
-
-- **Server URL:** http://localhost:8080
-
----
 
 ## API
 
@@ -73,8 +52,8 @@ Data is stored in a **SQLite** database via a repository interface, so it persis
 |-------:|-------------|---------------------|
 | POST   | /notes      | Create a note       |
 | GET    | /notes/{id} | Get a note by ID    |
-| DELETE | /notes/{id} | Delete a note by ID |
 | GET    | /notes      | List all notes      |
+| DELETE | /notes/{id} | Delete a note by ID |
 
 > ID is an integer and auto-incremented by SQLite.
 
@@ -154,5 +133,3 @@ curl http://localhost:8080/notes
 - **Router:** [github.com/go-chi/chi](https://github.com/go-chi/chi)
 - **Rendering:** [github.com/go-chi/render](https://github.com/go-chi/render)
 - **Storage:** SQLite via repository interface (`internal/storage.NoteRepository`)
-- **Port:** 8080 (hard-coded in `main.go`)
-- **Concurrency:** demo-only; not designed for concurrent writes
