@@ -6,18 +6,20 @@ import (
 	"os"
 
 	"gonotes/internal/notes"
+	"gonotes/internal/notes/config"
 	"gonotes/internal/notes/storage/sqlite"
 
 	"github.com/go-chi/chi"
 )
 
 func main() {
+	cfg := config.MustLoadConfig()
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	router := chi.NewRouter()
 
-	storage, err := sqlite.New("./storage/storage.db")
+	storage, err := sqlite.New(cfg.StoragePath)
 	if err != nil {
 		log.Error("failed to init storage", slog.Any("err", err))
 		os.Exit(1)
