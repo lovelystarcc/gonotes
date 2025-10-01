@@ -1,4 +1,5 @@
-env: "local"
+env: "local" # dev, prod
+secret_key: "d9458a559557d448648c9a513a995d27" # generated
 storage_path: "./storage/storage.db"
 http_server:
   address: ":8080"

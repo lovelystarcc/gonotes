@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"gonotes/internal/notes/lib/slogpretty"
+	"gonotes/internal/lib/slogpretty"
 )
 
 const (

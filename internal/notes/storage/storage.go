@@ -2,7 +2,7 @@ package storage
 
 import (
 	"errors"
-	"gonotes/internal/notes/model"
+	"gonotes/internal/notes/entity"
 )
 
 var (
@@ -10,8 +10,8 @@ var (
 )
 
 type NoteRepository interface {
-	Create(note model.Note) (*model.Note, error)
-	Get(id int) (*model.Note, error)
-	Delete(id int) (*model.Note, error)
-	GetAll() ([]model.Note, error)
+	Create(note *entity.Note) (*entity.Note, error)
+	Get(id int, userID int) (*entity.Note, error)
+	Delete(id int, userID int) (*entity.Note, error)
+	GetAll(userID int) ([]entity.Note, error)
 }
