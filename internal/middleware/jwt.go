@@ -6,6 +6,7 @@ import (
 	"gonotes/internal/api"
 	"gonotes/internal/security"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/render"
@@ -46,7 +47,14 @@ func (m *AuthMiddleware) Auth(next http.Handler) http.Handler {
 			render.Render(w, r, api.NewErrResponse(http.StatusUnauthorized, fmt.Errorf("invalid token")))
 			return
 		}
-		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+
+		userID, err := strconv.Atoi(claims.UserID)
+		if err != nil {
+			render.Render(w, r, api.NewErrResponse(http.StatusUnauthorized, fmt.Errorf("invalid user id")))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), UserIDKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

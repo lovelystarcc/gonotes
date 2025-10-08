@@ -1,2 +1,3 @@
 ./storage/sqlite.db
+.DS_Store
 .env

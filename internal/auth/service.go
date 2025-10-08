@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strconv"
 	"time"
 
 	"gonotes/internal/security"
@@ -18,7 +19,7 @@ func NewAuthService(secret string) *AuthService {
 
 func (s *AuthService) GenerateToken(userID int) (string, error) {
 	claims := &security.Claims{
-		UserID: userID,
+		UserID: strconv.Itoa(userID),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

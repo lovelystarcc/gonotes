@@ -7,8 +7,8 @@ import (
 )
 
 type ErrResponse struct {
-	Err            error  `json:"-"`
-	HTTPStatusCode int    `json:"-"`
+	Err            string `json:"error"`
+	HTTPStatusCode int    `json:"status_code"`
 	Message        string `json:"message"`
 }
 
@@ -19,7 +19,7 @@ func (e ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 
 func NewErrResponse(status int, err error) render.Renderer {
 	return &ErrResponse{
-		Err:            err,
+		Err:            err.Error(),
 		HTTPStatusCode: status,
 		Message:        err.Error(),
 	}
