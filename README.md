@@ -1,18 +1,21 @@
 # GoNotes
 
-Minimal REST API for note management, written in Go with **chi** and **render**.
-Data is stored in a **SQLite** database.
+Minimal REST API for note management with JWT authentication, written in Go with **chi** and **render**. Data is stored in a **SQLite** database.
 
 ---
 
 ## Features
 
-- **Create note:** `POST /notes`
-- **Get note by ID:** `GET /notes/{id}`
-- **Delete note by ID:** `DELETE /notes/{id}`
-- **List all notes:** `GET /notes`
-- **JSON I/O with basic validation:** `text` is required
-- **Persistent storage:** notes are saved in `storage/storage.db`
+- **User Authentication:** JWT-based registration and login
+- **Note Management:**
+  - Create note: `POST /notes`
+  - Get note by ID: `GET /notes/{id}`
+  - Delete note by ID: `DELETE /notes/{id}`
+  - List all notes: `GET /notes`
+- **Security:** Password hashing with bcrypt, JWT token validation
+- **CORS Support:** Configured for local development
+- **Structured Logging:** Colorful console output with slog
+- **Persistent Storage:** Users and notes stored in SQLite
 
 ---
 
@@ -20,10 +23,38 @@ Data is stored in a **SQLite** database.
 
 - **Go:** 1.20+
 - **SQLite:** via [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+- **Migrate CLI:** for database migrations
 
 ---
 
-## Getting started
+## Getting Started
+
+### Configuration
+Create a config file at `configs/local.yaml`:
+
+```yaml
+env: "local"
+secret_key: "your-secret-key-here"
+storage_path: "storage/storage.db"
+http_server:
+  address: ":8080"
+  timeout: 4s
+  idle_timeout: 60s
+  user: "admin"
+  password: "password"
+```
+
+### Database Migrations
+```bash
+# Create new migration
+make migrate-create name=init_schema
+
+# Apply migrations
+make migrate-up
+
+# Rollback migrations
+make migrate-down
+```
 
 ### Using Makefile
 - **Run server:**
@@ -34,102 +65,169 @@ Data is stored in a **SQLite** database.
   ```bash
   make build
   ```
-  - Output binary name is controlled by:
-    ```makefile
-    BINARY_NAME=app
-    ```
-  - Result: `./app`
-
+- **Run tests:**
+  ```bash
+  make test
+  ```
+- **Format code:**
+  ```bash
+  make fmt
+  ```
+- **Run linter:**
+  ```bash
+  make lint
+  ```
 - **Clean build artifacts:**
   ```bash
   make clean
   ```
 
-## API
-
-### Endpoints
-| Method | Path        | Description         |
-|-------:|-------------|---------------------|
-| POST   | /notes      | Create a note       |
-| GET    | /notes/{id} | Get a note by ID    |
-| GET    | /notes      | List all notes      |
-| DELETE | /notes/{id} | Delete a note by ID |
-
-> ID is an integer and auto-incremented by SQLite.
-
 ---
 
-### Create a note
-- **Request body:**
+## API
+
+### Authentication Endpoints
+
+#### Register
+- **URL:** `POST /auth/register`
+- **Body:**
 ```json
-{ "text": "First note" }
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 ```
 - **Response 201:**
 ```json
-{ "id": 1, "text": "First note" }
-```
-- **Validation:** missing text → 400
-
-Example:
-```bash
-curl -X POST http://localhost:8080/notes \
-  -H "Content-Type: application/json" \
-  -d '{"text":"First note"}'
+{
+  "id": 1,
+  "email": "user@example.com"
+}
 ```
 
----
-
-### Get a note
+#### Login
+- **URL:** `POST /auth/login`
+- **Body:** Same as register
 - **Response 200:**
 ```json
-{ "id": 1, "text": "First note" }
-```
-Example:
-```bash
-curl http://localhost:8080/notes/1
-```
-
----
-
-### Delete a note
-- **Response:** 204 No Content (no body)
-  *or* 200 OK with deleted note if API is configured that way.
-
-Example:
-```bash
-curl -X DELETE http://localhost:8080/notes/1
+{
+  "email": "user@example.com",
+  "token": "jwt-token-here"
+}
 ```
 
----
+### Note Endpoints (All require authentication)
 
-### List notes
+#### Create Note
+- **URL:** `POST /notes`
+- **Headers:** `Authorization: Bearer <jwt-token>`
+- **Body:**
+```json
+{
+  "title": "My Note",
+  "content": "Note content here"
+}
+```
+- **Response 201:**
+```json
+{
+  "id": 1,
+  "title": "My Note",
+  "content": "Note content here",
+  "created_at": "2023-01-01T00:00:00Z"
+}
+```
+
+#### Get Note
+- **URL:** `GET /notes/{id}`
+- **Headers:** `Authorization: Bearer <jwt-token>`
+- **Response 200:**
+```json
+{
+  "id": 1,
+  "title": "My Note",
+  "content": "Note content here",
+  "created_at": "2023-01-01T00:00:00Z"
+}
+```
+
+#### Delete Note
+- **URL:** `DELETE /notes/{id}`
+- **Headers:** `Authorization: Bearer <jwt-token>`
+- **Response 200:** Returns deleted note
+
+#### List Notes
+- **URL:** `GET /notes`
+- **Headers:** `Authorization: Bearer <jwt-token>`
 - **Response 200:**
 ```json
 [
-  { "id": 1, "text": "First note" }
+  {
+    "id": 1,
+    "title": "My Note",
+    "content": "Note content here",
+    "created_at": "2023-01-01T00:00:00Z"
+  }
 ]
-```
-Example:
-```bash
-curl http://localhost:8080/notes
 ```
 
 ---
 
-## Error model
+## Usage Examples
+
+### 1. Register a new user
+```bash
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
+```
+
+### 2. Login and get token
+```bash
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123"}'
+```
+
+### 3. Create a note (with JWT token)
+```bash
+curl -X POST http://localhost:8080/notes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"title":"First Note","content":"This is my first note"}'
+```
+
+### 4. Get all notes
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8080/notes
+```
+
+---
+
+## Error Model
 
 - **Format:**
 ```json
-{ "message": "error description" }
+{
+  "message": "error description"
+}
 ```
-- **Examples:**
-  - **400 Bad Request:** invalid ID format, missing text
-  - **404 Not Found:** note not found
+- **Common Status Codes:**
+  - **400 Bad Request:** Invalid input data
+  - **401 Unauthorized:** Missing or invalid JWT token
+  - **404 Not Found:** Note not found
+  - **409 Conflict:** User already exists
+  - **500 Internal Server Error:** Server error
 
 ---
 
-## Implementation notes
+## Implementation Details
 
 - **Router:** [github.com/go-chi/chi](https://github.com/go-chi/chi)
 - **Rendering:** [github.com/go-chi/render](https://github.com/go-chi/render)
-- **Storage:** SQLite via repository interface (`internal/storage.NoteRepository`)
+- **Authentication:** JWT with [github.com/golang-jwt/jwt](https://github.com/golang-jwt/jwt)
+- **Password Hashing:** bcrypt via golang.org/x/crypto
+- **Storage:** SQLite with repository pattern
+- **Logging:** Structured logging with slog and custom pretty handler
+- **Configuration:** YAML config with cleanenv
